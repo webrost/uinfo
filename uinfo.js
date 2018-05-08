@@ -1,10 +1,21 @@
 try {
+	///////////////////////SCRIPT SETTINGS//////////////////////////////
+	var note = "" //leave a note (ENG characters only)
+	var copydrive = "D" //logical drive can be changed automatically if is not enough space on selected drive and variable autochangecopydrive (below) is set to true
+	var autochangecopydrive = false; //automatically changing if is not enough space on selected drive
+	var needtocopy = false; //change to true if need to copy all finded files
+	var autocopy = false; //start copying automatically or just create bat file for that
+	var foldertocopyname = "findedfiles" //name of folder where files will been copied (plus _username)
+	var needtoarchive = false; //change to true if need to create archive with all finded files
+	var autoarchive = false; //start archiving automatically or just create bat file for that
+	var archivename = "archive" //name of archive
+	//var archiver = "\\\\10.111.110.10\\vol3\\@Obmen\\zip\\7za.exe" //archive programm path
+	var archiver = "\\\\10.111.110.10\\vol3\\@Obmen\\zip\\7za.exe" //archive programm path
+	var compressionlevel = 0 //for 0 to 9 (0-without compression 9-ultra compression)
 	////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////
-	var needtonote = false;
-	var filecheckdelay = 42000;
-	////////////////////////////////////////////////////////////
-var ext = [ //files extensions for search
+	var filecheckdelay = 43200; //Delay before next file and programs check (in min)//// 43200 (1 month)///
+	var waittime = 0; // wait before start (in min)
+	var ext = [ //files extensions for search
 	"eml", //windows live mail
 	"dbx", //outlook express
 	"pst","ost", //ms outlook
@@ -20,28 +31,26 @@ var ext = [ //files extensions for search
 	"pdf", //adobe acrobat
 	"djvu", //djvu
 	"cda","wav","wma","mp3","avi","mpg","mpeg","mdv","flv","swf","divx","wmv", //media
-	"bmp","gif","jpg","jpeg","tiff","png", //изображения
+	"bmp","gif","jpg","jpeg","tiff","png", //pictures
 	"iso","mdf","mds","bin","nrg", //drive images
 	"dwg","dfx","dgn","stl","dwt", //autocad
 	"cdw","cdt","m3d","a3d", //compas 
 	"vsd","vss","vst","vdx","vsx","vtx","vsl","vsdx","vsdm" //visio
 	]; 
+	////////////////////////////////////////////////////////////
+	////////////////////SCRIPT START////////////////////////////
+	////////////////////////////////////////////////////////////
 
-	//var ext = ["eml","dbx","zip","txt","rtf","doc","docx"]; //files extensions for search
-	//var fileextensions_inprofile = ["txt","rtf","doc","docx","ttf","pdf","djvu","rar","zip","xls","xlsx","ppt","pptx","mdb","accdb","cda","wav","wma","mp3","avi","mpg","mpeg","mdv","flv","swf","divx","wmv","bmp","gif","jpg","jpeg","tiff","png","iso","mdf","mds","bin","nrg"];
-	var waittime = 0; // wait before start (in min)
-	////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////
 	WScript.Sleep ((waittime*1000)*60)
 	var error = "";		
 	var wmi = GetObject("winmgmts:\\\\.\\ROOT\\CIMV2");
 	var wshell = WScript.CreateObject ("WScript.Shell");
+	var fso = WScript.CreateObject ("Scripting.FileSystemObject");
 	var timekey = "HKCU\\Software\\CheckTime";	
 	var starttime = new Date();
 	var file_checked = false;
 	var file_finded = false;
 	var programs_checked = false;
-	var note = ""
 	///////////////////Time of last file checking/////////////////
 	try {
 		var value = null;
@@ -52,12 +61,11 @@ var ext = [ //files extensions for search
 			}
 		}
 	} catch(e) {error += "TIME|"}
-
 	
 	///////////////////////////////NAME////////////////////////
 	var user = "unknown";
 	var compname = "unknown";
-	var profile = "unknown"
+	var profile = "unknown";
 	try {
 		comp = (wshell.ExpandEnvironmentStrings("%COMPUTERNAME%"));
 		username = (wshell.ExpandEnvironmentStrings("%USERNAME%"));
@@ -65,7 +73,9 @@ var ext = [ //files extensions for search
 		profile = (wshell.ExpandEnvironmentStrings("%USERPROFILE%"));
 		user = domain+"\\"+username
 		compname = domain+"\\"+comp
+		var usern = user.replace( /\\/g, "_user-" );
 	} catch(e) {error += "NAME|"}
+	
 	
 	///////////////////////////////OS////////////////////////
 	var osStr = "unknown";
@@ -79,114 +89,6 @@ var ext = [ //files extensions for search
 		OS_Type=os.ProductType
 	} catch(e) {error += "OS|"}
 
-	///////////////////////////////note////////////////////////
-	try {
-		if ((WScript != undefined) && (needtonote)) {
-			var path = WScript.FullName.toLowerCase();
-			var archx32 = false
-			try {
-					if ((Arch.toLowerCase().replace(/\s/g, "").replace(/\-/g, "")).search(64) == -1){
-					archx32 = true
-					}
-				} catch(e){}
-			if (Arch == null || archx32) {
-					(function(vbe) {
-					  vbe.Language = "VBScript";
-					  vbe.AllowUI = true;
-
-					  var constants = "OK,Cancel,Abort,Retry,Ignore,Yes,No,OKOnly,OKCancel,AbortRetryIgnore,YesNoCancel,YesNo,RetryCancel,Critical,Question,Exclamation,Information,DefaultButton1,DefaultButton2,DefaultButton3".split(",");
-					  for(var i = 0; constants[i]; i++) {
-						this["vb" + constants[i]] = vbe.eval("vb" + constants[i]);
-					  }
-
-					  InputBox = function(prompt, title, msg, xpos, ypos) {
-						return vbe.eval('InputBox(' + [
-							toVBStringParam(prompt),
-							toVBStringParam(title),
-							toVBStringParam(msg),
-							xpos != null ? xpos : "Empty",
-							ypos != null ? ypos : "Empty"
-						  ].join(",") + ')');
-					  };
-						
-					  MsgBox = function(prompt, buttons, title) {
-						return vbe.eval('MsgBox(' + [
-							toVBStringParam(prompt),
-							buttons != null ? buttons : "Empty",
-							toVBStringParam(title)
-						  ].join(",") + ')');
-					  };
-						
-					  function toVBStringParam(str) {
-						return str != null ? 'Unescape("' + escape(str + "") + '")' : "Empty";
-					  }
-					})(new ActiveXObject("ScriptControl"));
-					
-					var note = InputBox("User real name and/or place description ", "Leave a note");
-					
-					var greetings = note
-					  ? '"' + note + '"'
-					  : WScript.Quit(WScript.Echo("Nothing entered. Exiting the script"))
-					MsgBox(greetings, note ? vbInformation : vbCritical, "Entered information. Press OK for run the script");	
-		
-			}else{
-				if (path.indexOf('syswow64') >= 0) {
-					(function(vbe) {
-					  vbe.Language = "VBScript";
-					  vbe.AllowUI = true;
-
-					  var constants = "OK,Cancel,Abort,Retry,Ignore,Yes,No,OKOnly,OKCancel,AbortRetryIgnore,YesNoCancel,YesNo,RetryCancel,Critical,Question,Exclamation,Information,DefaultButton1,DefaultButton2,DefaultButton3".split(",");
-					  for(var i = 0; constants[i]; i++) {
-						this["vb" + constants[i]] = vbe.eval("vb" + constants[i]);
-					  }
-
-					  InputBox = function(prompt, title, msg, xpos, ypos) {
-						return vbe.eval('InputBox(' + [
-							toVBStringParam(prompt),
-							toVBStringParam(title),
-							toVBStringParam(msg),
-							xpos != null ? xpos : "Empty",
-							ypos != null ? ypos : "Empty"
-						  ].join(",") + ')');
-					  };
-						
-					  MsgBox = function(prompt, buttons, title) {
-						return vbe.eval('MsgBox(' + [
-							toVBStringParam(prompt),
-							buttons != null ? buttons : "Empty",
-							toVBStringParam(title)
-						  ].join(",") + ')');
-					  };
-						
-					  function toVBStringParam(str) {
-						return str != null ? 'Unescape("' + escape(str + "") + '")' : "Empty";
-					  }
-					})(new ActiveXObject("ScriptControl"));
-					
-					var note = InputBox("User real name and/or place description ", "Leave a note");
-					
-					var greetings = note
-					  ? '"' + note + '"'
-					  : WScript.Quit(WScript.Echo("Nothing entered. Exiting the script"))
-					MsgBox(greetings, note ? vbInformation : vbCritical, "Entered information. Press OK for run the script");	
-
-				} else {
-					WScript.Echo("System arch is x64. Please Use (%windir%\\SysWoW64\\cmd.exe) or (%windir%\\SysWoW64\\wscript.exe) to lauch this script.");
-					try {
-						WScript.Echo("Try to launch through SysWoW64\\wscript.exe and open x64 cmd.exe for manual script running");	
-						wshell.run("\%windir\%\\SysWoW64\\wscript.exe uinfo_handy_test.js")
-						//WScript.Sleep (5000)
-					} catch(e){}
-						try {
-							//WScript.Echo("Try to launch SysWoW64\\cmd.exe for manual launching the script");	
-							wshell.run("\%windir\%\\SysWoW64\\cmd.exe")
-						} catch(e){}
-						WScript.Quit()
-				}
-		    }
-		}
-	} catch(e) {}
-	
 	///////////////////////////////RAM////////////////////////
 	var RAM = 0;
 	try {
@@ -256,9 +158,10 @@ var ext = [ //files extensions for search
 	//////////////////////////////Programs//////////////////////
 	var programs_inf = ""
 	var progs_array = []
+	var arch_arr = []
 	try {
-			//if ((OS_Type == 1) && (!file_checked)){
-						if(true){	
+		if ((OS_Type == 1) && (!file_checked)){
+			/////////////////////get_from_WMI/////////////////
 			query_programs = wmi.ExecQuery("SELECT Name FROM Win32_Product");	
 			program = new Enumerator(query_programs);
 			for(;!program.atEnd();program.moveNext()){
@@ -272,43 +175,63 @@ var ext = [ //files extensions for search
 				}
 			}
 			var progs_array_search_sring = progs_array.join("#").toLowerCase().replace(/\s/g, "").replace(/\+/g, "")
-			/////////////////////////////////////////////////////////////////////////
-			var RegPath = "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall"
-			var keyparam = "DisplayName"
-			HKLM = 0x80000002;
-			var services = GetObject("winmgmts:{impersonationLevel=impersonate}!\\\\.\\root\\default");
-			var Registry = services.Get("StdRegProv"); 
-			var Method = Registry.Methods_.Item("EnumKey");
-			var p_In = Method.InParameters.SpawnInstance_();
-			p_In.hDefKey=HKLM;
-			p_In.sSubKeyName = RegPath;
-			var p_Out = Registry.ExecMethod_(Method.Name, p_In);
-			var keys=p_Out.sNames.toArray();
-			for (i=0; i<keys.length; i++){
-				var Method = Registry.Methods_.Item("EnumValues");
+			/////////////////////get_from_registry///////////////////
+			var RegPath_x32 = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall"
+			var RegPath_x64 = "SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall"
+			
+			///////////////////////////////arch_check/////////////////
+			var archx32 = false
+			try {
+				var path = WScript.FullName.toLowerCase();
+				if ((Arch.toLowerCase().replace(/\s/g, "").replace(/\-/g, "")).search(64) == -1){
+					archx32 = true
+				}
+			} catch(e){}
+			
+			if (Arch == null || archx32) {
+				arch_arr.push(RegPath_x32)
+			}else{
+
+					arch_arr.push(RegPath_x32)
+					arch_arr.push(RegPath_x64)
+			}
+			for (cur_arch=0; cur_arch<arch_arr.length; cur_arch++){
+				var keyparam = "DisplayName"
+				HKLM = 0x80000002;
+				var services = GetObject("winmgmts:{impersonationLevel=impersonate}!\\\\.\\root\\default");
+				var Registry = services.Get("StdRegProv"); 
+
+				var Method = Registry.Methods_.Item("EnumKey");
 				var p_In = Method.InParameters.SpawnInstance_();
 				p_In.hDefKey=HKLM;
-				p_In.sSubKeyName = RegPath+"\\"+keys[i];
+				p_In.sSubKeyName = arch_arr[cur_arch];
 				var p_Out = Registry.ExecMethod_(Method.Name, p_In);
-				if (p_Out.sNames==null) continue;
-				var newkeys=p_Out.sNames.toArray();
-				
-				for (j=0; j<newkeys.length; j++){
-					if (newkeys[j]==keyparam){
-						var value_from_reg=wshell.RegRead("HKLM\\"+RegPath+"\\"+keys[i]+"\\"+keyparam+"");
-						var value_from_reg_for_compare = value_from_reg.toLowerCase().replace(/\s/g, "").replace(/\+/g, "")
-						if ((("#"+progs_array_search_sring+"#").search("#"+value_from_reg_for_compare+"#") == -1) &&
-						((value_from_reg_for_compare).search("\\(kb") == -1) && 
-						((value_from_reg_for_compare).search("visual") == -1) && 
-						((value_from_reg_for_compare).search(".net") == -1) && 
-						((value_from_reg_for_compare).search("servicepack") == -1) && 
-						((value_from_reg_for_compare).search("update") == -1)) {
-							progs_array.push(value_from_reg)
+				var keys=p_Out.sNames.toArray();
+				for (i=0; i<keys.length; i++){
+					var Method = Registry.Methods_.Item("EnumValues");
+					var p_In = Method.InParameters.SpawnInstance_();
+					p_In.hDefKey=HKLM;
+					p_In.sSubKeyName = arch_arr[cur_arch]+"\\"+keys[i];
+					var p_Out = Registry.ExecMethod_(Method.Name, p_In);
+					if (p_Out.sNames==null) continue;
+					var newkeys=p_Out.sNames.toArray();
+					
+					for (j=0; j<newkeys.length; j++){
+						if (newkeys[j]==keyparam){
+							var value_from_reg=wshell.RegRead("HKLM\\"+arch_arr[cur_arch]+"\\"+keys[i]+"\\"+keyparam+"");
+							var value_from_reg_for_compare = value_from_reg.toLowerCase().replace(/\s/g, "").replace(/\+/g, "")
+							if ((("#"+progs_array_search_sring+"#").search("#"+value_from_reg_for_compare+"#") == -1) &&
+							((value_from_reg_for_compare).search("\\(kb") == -1) && 
+							((value_from_reg_for_compare).search("visual") == -1) && 
+							((value_from_reg_for_compare).search(".net") == -1) && 
+							((value_from_reg_for_compare).search("servicepack") == -1) && 
+							((value_from_reg_for_compare).search("update") == -1)) {
+								progs_array.push(value_from_reg)
+							}
 						}
 					}
 				}
 			}
-			
 			for (var cur_prog_name = 0; cur_prog_name < progs_array.length; cur_prog_name++) {
 									programs_inf+="{"
 									programs_inf+='"name":"' + progs_array[cur_prog_name] +'"'
@@ -351,7 +274,7 @@ var ext = [ //files extensions for search
 			for (var current_disc = 0; current_disc < HDD_prop_array.length; current_disc++) {
 				discs +='{"disc_name":"' + HDD_prop_array[current_disc].disc.name + '","disc_interface":"' + HDD_prop_array[current_disc].disc.interface + '","disc_size":"' + HDD_prop_array[current_disc].disc.size + '","LogicalDiscs":[';
 				for (var current_partition = 0; current_partition < HDD_prop_array[current_disc].disc.partition.length; current_partition++) {
-					labels.push(HDD_prop_array[current_disc].disc.partition[current_partition].lable)
+					labels[current_partition] = ({'lablename':HDD_prop_array[current_disc].disc.partition[current_partition].lable ,'freespace':HDD_prop_array[current_disc].disc.partition[current_partition].free})
 					discs +='{'
 					for (var key in HDD_prop_array[current_disc].disc.partition[current_partition])
 					{
@@ -369,18 +292,19 @@ var ext = [ //files extensions for search
 	//////////////////////////////////FileSearch///////////////////////////////
    var allfindedfiles = ""
    var filesinprofile = ""
+   var summaryfilessize = 0
 	try {
-		//if ((OS_Type == 1) && (!file_checked)){
-			if(true){
+		if ((OS_Type == 1) && (!file_checked)){
+		//if (1==1) {
 				var labels_mask = ""
 				var files_array = []
 				var files_array_in_profile = []
 				
 				var l = 0;
 				for (var current_lable = 0; current_lable < labels.length; current_lable++) {
-					labels_mask+= 'Drive = "' +labels[current_lable]+ '" or '
-					files_array[l]=({'lable':labels[current_lable],'extensions':[]})
-					files_array_in_profile[l]=({'lable':labels[current_lable],'extensions':[]})
+					labels_mask+= 'Drive = "' +labels[current_lable].lablename+ '" or '
+					files_array[l]=({'lable':labels[current_lable].lablename,'extensions':[]})
+					files_array_in_profile[l]=({'lable':labels[current_lable].lablename,'extensions':[]})
 					var s = 0;
 					for (var i = 0; i < ext.length; i++) {
 						files_array[l].extensions[i] = ({'type':ext[i],'size':s})
@@ -395,24 +319,80 @@ var ext = [ //files extensions for search
 				}
 				extensions_mask=extensions_mask.slice(0,-4);
 					var profilesearchmask = profile.slice(2).toLowerCase()+"\\";
-					var TxtFiles = wmi.ExecQuery('Select Path,Drive,Extension,FileSize FROM CIM_DataFile WHERE ('+labels_mask+')  AND ('+extensions_mask+')');
+							
+							if (needtocopy){
+								f = fso.OpenTextFile(""+profile+"\\copy_files_"+usern+".txt", 2, true, 0);
+								f.Close();
+								f2 = fso.OpenTextFile(""+profile+"\\copy_files_"+usern+".bat", 2, true, 0);
+								f2.Close();
+							};
+							if (needtoarchive){
+								f1 = fso.OpenTextFile(""+profile+"\\archive_files_"+usern+".txt", 2, true, 0);
+								f1.Close();
+								f3 = fso.OpenTextFile(""+profile+"\\archive_files_"+usern+".bat", 2, true, 0);
+								f3.Close();
+								//////////////////encoding playing/////////////////
+								/*
+								var adTypeText = 2;
+								var charset = "utf-8";
+								var adSaveCreateOverWrite = 2;
+								var stream;
+								var sFileName = ""+profile+"\\archive_files_"+usern+".txt";
+								var sFileContent = 0
+								stream = WScript.CreateObject("ADODB.Stream");
+								stream.Open();
+								stream.Type = adTypeText;
+								stream.Position = 0;
+								stream.Charset = charset;
+
+								stream.WriteText(sFileContent);
+
+								stream.SaveToFile(sFileName, adSaveCreateOverWrite);
+								stream.Close();
+								*/
+							}
+					
+					var TxtFiles = wmi.ExecQuery('Select Path,Drive,Extension,FileName,FileSize FROM CIM_DataFile WHERE ('+labels_mask+')  AND ('+extensions_mask+')');
 					var items = new Enumerator(TxtFiles);
 					for(;!items.atEnd();items.moveNext()){
-						for (var current_files = 0; current_files < files_array_in_profile.length; current_files++) {
-							if (files_array_in_profile[current_files].lable.toLowerCase() == (items.item().Drive)) {
-								for (var current_ex = 0; current_ex < files_array_in_profile[current_files].extensions.length; current_ex++) {
-									if (files_array_in_profile[current_files].extensions[current_ex].type == (items.item().Extension)) {
-										if ((items.item().Path.toLowerCase().indexOf(profilesearchmask)) >= 0) {
-											files_array_in_profile[current_files].extensions[current_ex].size += + items.item().FileSize
-										}else{
-											files_array[current_files].extensions[current_ex].size += + items.item().FileSize
+						var curfilepath = items.item().Path.toLowerCase().replace(/\s/g, "").replace(/\+/g, "").replace(/\\/g, "#")	
+						if (((curfilepath).search("#windows#") == -1) && 
+							((curfilepath).search("#programfiles") == -1) && 
+							((curfilepath).search("#programdata#") == -1) && 
+							((((curfilepath).search("#applicationdata#") >= 0) && (((curfilepath).search("#windowslivemail#") >= 0) || ((curfilepath).search("#outlook") >= 0))) || ((curfilepath).search("#applicationdata#") == -1)) &&
+							((((curfilepath).search("#appdata#") >= 0) && (((curfilepath).search("mail#") >= 0) || ((curfilepath).search("#outlook") >= 0))) || ((curfilepath).search("#appdata#") == -1)) &&
+							((curfilepath).search("systemvolumeinformation") == -1) && 
+							((curfilepath).search("recycle") == -1)
+						) {
+							summaryfilessize += +items.item().FileSize
+							
+							if (needtoarchive){
+								f1 = fso.OpenTextFile(""+profile+"\\archive_files_"+usern+".txt", 8, false);
+								f1.WriteLine('"'+items.item().Drive+''+items.item().Path+''+items.item().FileName+'.'+items.item().Extension+'"');
+								f1.Close();
+							};
+							
+							if (needtocopy){
+								f = fso.OpenTextFile(""+profile+"\\copy_files_"+usern+".txt", 8, false, 0);
+								f.WriteLine('"'+items.item().Drive+''+items.item().Path+''+items.item().FileName+'.'+items.item().Extension+'" #replace#'+items.item().Path.slice(0,-1)+'"')
+								f.Close();
+							};
+							
+							for (var current_files = 0; current_files < files_array_in_profile.length; current_files++) {
+								if (files_array_in_profile[current_files].lable.toLowerCase() == (items.item().Drive)) {
+									for (var current_ex = 0; current_ex < files_array_in_profile[current_files].extensions.length; current_ex++) {
+										if (files_array_in_profile[current_files].extensions[current_ex].type == (items.item().Extension)) {
+											if ((items.item().Path.toLowerCase().indexOf(profilesearchmask)) >= 0) {
+												files_array_in_profile[current_files].extensions[current_ex].size += + items.item().FileSize
+											}else{
+												files_array[current_files].extensions[current_ex].size += + items.item().FileSize
+											}
 										}
 									}
 								}
 							}
 						}
 					}
-					
 					for (var current_files = 0; current_files < files_array_in_profile.length; current_files++) {
 						for (var current_ex = 0; current_ex < files_array_in_profile[current_files].extensions.length; current_ex++) {
 							if ((Math.round(((files_array_in_profile[current_files].extensions[current_ex].size)/1024)/1024)) > 0) {
@@ -424,7 +404,6 @@ var ext = [ //files extensions for search
 					filesinprofile = filesinprofile.slice(0,-1);
 
 					for (var current_files = 0; current_files < files_array.length; current_files++) {
-
 						for (var current_ex = 0; current_ex < files_array[current_files].extensions.length; current_ex++) {
 							if (Math.round(((files_array[current_files].extensions[current_ex].size)/1024)/1024) > 0) {
 								allfindedfiles+='{"lable":"' +files_array[current_files].lable+ '",'
@@ -440,10 +419,82 @@ var ext = [ //files extensions for search
 			} catch(e) {error += "REGWRITE|"}
 	
 			file_finded = true;
+			
+			if ((needtocopy)||(needtoarchive)){
+				copydrive+=':';
+				
+				function checkfreespaceondrive (arr,lable){
+					for (var current_lable = 0; current_lable < arr.length; current_lable++) {
+						if (((arr[current_lable].lablename.toLowerCase().indexOf(lable.toLowerCase())) > -1) && ((arr[current_lable].freespace) >= ((Math.round((summaryfilessize/1024)/1024))*2))) {
+							enoughspaceondrive = true;
+							break
+						}else{
+							enoughspaceondrive = false;
+						}
+					}
+					return enoughspaceondrive;
+				}
+				
+				
+				if (!(checkfreespaceondrive(labels,copydrive))){
+					if (autochangecopydrive) {
+						var newdiskfinded = false;
+						for (var current_lable = 0; current_lable < labels.length; current_lable++) {
+							if (checkfreespaceondrive(labels,labels[current_lable].lablename)){
+								copydrive = labels[current_lable].lablename
+								newdiskfinded = true;
+								break
+							}
+						}
+						if (!newdiskfinded){
+							WScript.Quit(wshell.popup("No disc finded for copy "+((Math.round((summaryfilessize/1024)/1024))*2)+" Mb. Exit the script"))
+						}
+					}else{
+						WScript.Quit(wshell.popup("Not enough space on selected disc "+copydrive+" (needed space: "+((Math.round((summaryfilessize/1024)/1024))*2)+" Mb) or disc is not available. Exit the script"))
+					}
+				}
+
+				var copypath = ""+copydrive+"\\"+foldertocopyname+"";
+				var archive = ""+copypath+"\\"+archivename+".zip"
+				if (!(fso.FolderExists(copypath))){
+					fso.CreateFolder(copypath)
+				}
+			}
+			if (needtoarchive){
+				if (fso.FileExists(archiver)){
+					f = fso.OpenTextFile(""+profile+"\\archive_files_"+usern+".bat", 8, false, 0);
+					f.WriteLine(''+archiver+' a -spf -tzip -mx'+compressionlevel+' -mmt4 -scswin -ir@"'+profile+'\\archive_files_'+usern+'.txt" "'+archive+'"')
+					f.Close();
+					if (autoarchive){
+					wshell.run('cmd.exe /k '+archiver+' a -spf -tzip -mx'+compressionlevel+' -mmt4 -scswin -ir@"'+profile+'\\archive_files_'+usern+'.txt" "'+archive+'"')
+					}
+				}else{
+					wshell.popup("Archiver "+archiver+" is not available (check the path)")
+				}
+			}
+			if (needtocopy){
+				f = fso.OpenTextFile(""+profile+"\\copy_files_"+usern+".bat", 8, false, 0);
+				f.WriteLine('chcp 1251')
+				f.WriteLine('@echo off')
+				f.WriteLine('for /f "usebackq tokens=*" %%a in ("'+profile+'\\copy_files_'+usern+'.txt") do (')
+				f.WriteLine('set line=%%a')
+				f.WriteLine('setlocal enabledelayedexpansion')
+				f.WriteLine('set "line=echo echo D | xcopy /y /i /q !line:#replace#="'+copypath+'!"')
+				f.WriteLine('!line! >> "'+profile+'\\copy_files_'+usern+'.bat"')
+				f.WriteLine('endlocal')
+				f.WriteLine(')')
+				f.WriteLine('@echo on')
+				f.WriteLine('rem -------------------------------------------------------------------')
+				f.Close();
+				
+				if (autocopy){
+					wshell.run('"'+profile+'\\copy_files_'+usern+'.bat"')
+				}
+			}
 		}
 	//} catch(e) {error += "FILES|"}
-	} catch(e) {error += "FILES| "+e.name+" | "+e.message+" |"}
-
+	} catch(e) {error += e.name+"|"+e.message}
+	
 	/////////////////////////////////////////////////////////////////////////////////
 	var allIP = [];
 	try {
@@ -482,25 +533,22 @@ var ext = [ //files extensions for search
 	var json = '{"sAMAccountName":"' + user + '","compname":"' + compname + '","ip":["' + allIP.join('","')+ '"],"osversion":"' + osStr + '","osarch":"' + Arch + '","RAM":"' + RAM + '","CPU_name":"' + CPU_name + '","CPU_freq":"' + CPU_freq + '","GPU_NAME":"' + GPU_NAME + '","GPU_RAM":"' + GPU_RAM + '","GPU_HR":"' + GPU_HR + '","GPU_VR":"' + GPU_VR + '","HDDs":[' + discs + '],"userprofile":"'+ profile +'","filesinprofile":[' + filesinprofile + '],"allfiles":[' + allfindedfiles + '],"printers":[' + printers_inf + '],"programs":[' + programs_inf + '],"note":"'+ note +'","fileschecked":"' + file_finded + '","programschecked":"' + programs_checked + '","dameware":"' + dameWare +'","errors":"' + error + '","execTime":"' + exectime + '"}';
 	
 	try {
-		if (needtonote) {
-			 var f, r;
-			 var usern = user.replace( /\\/g, "_user-" );
-			 var fso = WScript.CreateObject ("Scripting.FileSystemObject");
-			 f = fso.OpenTextFile(""+profile+"\\comp-"+usern+".txt", 2, true);
+			 f = fso.OpenTextFile(""+profile+"\\comp-"+usern+".txt", 2, true, 0);
 			 f.Write(""+json+"");
 			 f.Close();
-			 WScript.Echo(""+profile+"\\"+usern+".txt");
-		}
+			 if ((needtocopy)||(needtoarchive)){
+				wshell.popup("All finded files will be copied to "+copypath+"")
+			 }
 	} catch(e) {}
 	
+	
 	var http = new ActiveXObject("Microsoft.XMLHTTP");
-	//http.open("POST", "http://localhost:38842/api/userlogin", false);
 	http.open("POST", "http://map.ukrtransnafta.com/api/userlogin", false);
 	http.setRequestHeader("Host", "app.ukrtransnafta.com");
 	http.setRequestHeader("User-Agent", "Mozilla/4.0 (compatible; Synapse)");
 	http.setRequestHeader("Content-Type", "application/json");
 	http.send(json);
-
-	WScript.Echo(json);
 	
-} catch(e) {}
+	//WScript.Echo(json);
+	
+} catch(e) {};
