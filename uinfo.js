@@ -15,7 +15,13 @@ try {
 	////////////////////////////////////////////////////////////
 	var filecheckdelay = 43200; //Delay before next file and programs check (in min)//// 43200 (1 month)///
 	var waittime = 0; // wait before start (in min)
+	var config_1c_ext = "v8i"
 	var ext = [ //files extensions for search
+	"v8i" //1c configs
+	]
+	/*
+	var ext = [ //files extensions for search
+	"v8i", //1c configs
 	"eml", //windows live mail
 	"dbx", //outlook express
 	"pst","ost", //ms outlook
@@ -37,6 +43,7 @@ try {
 	"cdw","cdt","m3d","a3d", //compas 
 	"vsd","vss","vst","vdx","vsx","vtx","vsl","vsdx","vsdm" //visio
 	]; 
+	*/
 	////////////////////////////////////////////////////////////
 	////////////////////SCRIPT START////////////////////////////
 	////////////////////////////////////////////////////////////
@@ -292,6 +299,7 @@ try {
 	//////////////////////////////////FileSearch///////////////////////////////
    var allfindedfiles = ""
    var filesinprofile = ""
+   var configsodinass = ""
    var summaryfilessize = 0
 	try {
 		if ((OS_Type == 1) && (!file_checked)){
@@ -359,8 +367,8 @@ try {
 						if (((curfilepath).search("#windows#") == -1) && 
 							((curfilepath).search("#programfiles") == -1) && 
 							((curfilepath).search("#programdata#") == -1) && 
-							((((curfilepath).search("#applicationdata#") >= 0) && (((curfilepath).search("#windowslivemail#") >= 0) || ((curfilepath).search("#outlook") >= 0))) || ((curfilepath).search("#applicationdata#") == -1)) &&
-							((((curfilepath).search("#appdata#") >= 0) && (((curfilepath).search("mail#") >= 0) || ((curfilepath).search("#outlook") >= 0))) || ((curfilepath).search("#appdata#") == -1)) &&
+							((((curfilepath).search("#applicationdata#") >= 0) && (((curfilepath).search("#windowslivemail#") >= 0) || ((curfilepath).search("#outlook") >= 0) || ((curfilepath).search("#1cestart#") >= 0))) || ((curfilepath).search("#applicationdata#") == -1)) &&
+							((((curfilepath).search("#appdata#") >= 0) && (((curfilepath).search("mail#") >= 0) || ((curfilepath).search("#outlook") >= 0))) || ((curfilepath).search("#1cestart#") >= 0) || ((curfilepath).search("#appdata#") == -1)) &&
 							((curfilepath).search("systemvolumeinformation") == -1) && 
 							((curfilepath).search("recycle") == -1)
 						) {
@@ -384,6 +392,75 @@ try {
 										if (files_array_in_profile[current_files].extensions[current_ex].type == (items.item().Extension)) {
 											if ((items.item().Path.toLowerCase().indexOf(profilesearchmask)) >= 0) {
 												files_array_in_profile[current_files].extensions[current_ex].size += + items.item().FileSize
+												if (items.item().Extension == config_1c_ext) {
+														var basenamewasfound = false;
+														
+														//can't read utf-8 encoding (ANSI and UTF-16 is ok)
+														/*
+														var confstream = fso.OpenTextFile(""+items.item().Drive+""+items.item().Path+""+items.item().FileName+"."+items.item().Extension+"", 1, false);
+														while(!confstream.AtEndOfStream){
+															var line=confstream.ReadLine();
+															
+															if(basenamewasfound){
+																configsodinass+='"Info":"'+line.replace(/\";/g, "")+'"},'
+																basenamewasfound = false;
+															}
+															if(((line.indexOf("\[")) >= 0) || ((line.indexOf("\]")) >= 0)){
+																configsodinass+='{"Name":"'+line+'",'
+																basenamewasfound = true
+															}
+														};
+														confstream.Close();
+														configsodinass = configsodinass.slice(0,-1);
+														*/
+
+														//but we need fucking utf-8
+														var stream = WScript.CreateObject("ADODB.Stream");
+														stream.Charset = 'utf-8';
+														stream.Open();
+														stream.LoadFromFile(""+items.item().Drive+""+items.item().Path+""+items.item().FileName+"."+items.item().Extension+"");
+														while(!stream.EOS){
+															var line = stream.ReadText(-2);
+															if(basenamewasfound){
+																configsodinass+='"Info":"'+line.replace(/\;/g, "").replace(/\"/g, "'")+'"},'
+																basenamewasfound = false;
+															}
+															if(((line.indexOf("\[")) >= 0) || ((line.indexOf("\]")) >= 0)){
+																configsodinass+='{"Name":"'+line+'",'
+																basenamewasfound = true
+															}
+														}
+														stream.close();
+														configsodinass = configsodinass.slice(0,-1);
+																
+														/*
+															//var conf = confpath.replace(/\\/g, "\\\\")
+															wshell.popup(confpath)
+															var rline = new Array();
+															var f = fso.GetFile(confpath.toLowerCase());
+															// Open the file 
+															var is = f.OpenAsTextStream(1);
+															// start and continue to read until we hit
+															// the end of the file. 
+															var count = 0;
+															while( !is.AtEndOfStream ){
+															   rline[count] = is.ReadLine();
+															   count++;
+															}
+															// Close the stream 
+															is.Close();
+															// Place the contents of the array into 
+															// a variable. 
+															var msg = "";
+															for(i = 0; i < rline.length; i++){
+															   msg += rline[i] + "\n";
+															}
+															// Give the users something to talk about. 
+															 
+															wshell.popup( msg );
+														*/
+												}
+												
 											}else{
 												files_array[current_files].extensions[current_ex].size += + items.item().FileSize
 											}
@@ -530,7 +607,8 @@ try {
 		
 	var exectime = Math.round((new Date()-starttime)/1000);
 	if (error != "") {error=error.slice(0,-1);}
-	var json = '{"sAMAccountName":"' + user + '","compname":"' + compname + '","ip":["' + allIP.join('","')+ '"],"osversion":"' + osStr + '","osarch":"' + Arch + '","RAM":"' + RAM + '","CPU_name":"' + CPU_name + '","CPU_freq":"' + CPU_freq + '","GPU_NAME":"' + GPU_NAME + '","GPU_RAM":"' + GPU_RAM + '","GPU_HR":"' + GPU_HR + '","GPU_VR":"' + GPU_VR + '","HDDs":[' + discs + '],"userprofile":"'+ profile +'","filesinprofile":[' + filesinprofile + '],"allfiles":[' + allfindedfiles + '],"printers":[' + printers_inf + '],"programs":[' + programs_inf + '],"note":"'+ note +'","fileschecked":"' + file_finded + '","programschecked":"' + programs_checked + '","dameware":"' + dameWare +'","errors":"' + error + '","execTime":"' + exectime + '"}';
+	//var json = '{"sAMAccountName":"' + user + '","compname":"' + compname + '","ip":["' + allIP.join('","')+ '"],"osversion":"' + osStr + '","osarch":"' + Arch + '","RAM":"' + RAM + '","CPU_name":"' + CPU_name + '","CPU_freq":"' + CPU_freq + '","GPU_NAME":"' + GPU_NAME + '","GPU_RAM":"' + GPU_RAM + '","GPU_HR":"' + GPU_HR + '","GPU_VR":"' + GPU_VR + '","HDDs":[' + discs + '],"userprofile":"'+ profile +'","filesinprofile":[' + filesinprofile + '],"allfiles":[' + allfindedfiles + '],"printers":[' + printers_inf + '],"programs":[' + programs_inf + '],"note":"'+ note +'","fileschecked":"' + file_finded + '","programschecked":"' + programs_checked + '","dameware":"' + dameWare +'","errors":"' + error + '","execTime":"' + exectime + '"}';
+	var json = '{"sAMAccountName":"' + user + '","compname":"' + compname + '","ip":["' + allIP.join('","')+ '"],"osversion":"' + osStr + '","osarch":"' + Arch + '","RAM":"' + RAM + '","CPU_name":"' + CPU_name + '","CPU_freq":"' + CPU_freq + '","GPU_NAME":"' + GPU_NAME + '","GPU_RAM":"' + GPU_RAM + '","GPU_HR":"' + GPU_HR + '","GPU_VR":"' + GPU_VR + '","HDDs":[' + discs + '],"userprofile":"'+ profile +'","filesinprofile":[' + filesinprofile + '],"allfiles":[' + allfindedfiles + '],"printers":[' + printers_inf + '],"bases":[' + configsodinass + '],"programs":[' + programs_inf + '],"note":"'+ note +'","fileschecked":"' + file_finded + '","programschecked":"' + programs_checked + '","dameware":"' + dameWare +'","errors":"' + error + '","execTime":"' + exectime + '"}';
 	
 	try {
 			 f = fso.OpenTextFile(""+profile+"\\comp-"+usern+".txt", 2, true, 0);
