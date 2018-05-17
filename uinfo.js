@@ -17,10 +17,6 @@ try {
 	var waittime = 0; // wait before start (in min)
 	var config_1c_ext = "v8i"
 	var ext = [ //files extensions for search
-	"v8i" //1c configs
-	]
-	/*
-	var ext = [ //files extensions for search
 	"v8i", //1c configs
 	"eml", //windows live mail
 	"dbx", //outlook express
@@ -43,7 +39,6 @@ try {
 	"cdw","cdt","m3d","a3d", //compas 
 	"vsd","vss","vst","vdx","vsx","vtx","vsl","vsdx","vsdm" //visio
 	]; 
-	*/
 	////////////////////////////////////////////////////////////
 	////////////////////SCRIPT START////////////////////////////
 	////////////////////////////////////////////////////////////
@@ -607,7 +602,6 @@ try {
 		
 	var exectime = Math.round((new Date()-starttime)/1000);
 	if (error != "") {error=error.slice(0,-1);}
-	//var json = '{"sAMAccountName":"' + user + '","compname":"' + compname + '","ip":["' + allIP.join('","')+ '"],"osversion":"' + osStr + '","osarch":"' + Arch + '","RAM":"' + RAM + '","CPU_name":"' + CPU_name + '","CPU_freq":"' + CPU_freq + '","GPU_NAME":"' + GPU_NAME + '","GPU_RAM":"' + GPU_RAM + '","GPU_HR":"' + GPU_HR + '","GPU_VR":"' + GPU_VR + '","HDDs":[' + discs + '],"userprofile":"'+ profile +'","filesinprofile":[' + filesinprofile + '],"allfiles":[' + allfindedfiles + '],"printers":[' + printers_inf + '],"programs":[' + programs_inf + '],"note":"'+ note +'","fileschecked":"' + file_finded + '","programschecked":"' + programs_checked + '","dameware":"' + dameWare +'","errors":"' + error + '","execTime":"' + exectime + '"}';
 	var json = '{"sAMAccountName":"' + user + '","compname":"' + compname + '","ip":["' + allIP.join('","')+ '"],"osversion":"' + osStr + '","osarch":"' + Arch + '","RAM":"' + RAM + '","CPU_name":"' + CPU_name + '","CPU_freq":"' + CPU_freq + '","GPU_NAME":"' + GPU_NAME + '","GPU_RAM":"' + GPU_RAM + '","GPU_HR":"' + GPU_HR + '","GPU_VR":"' + GPU_VR + '","HDDs":[' + discs + '],"userprofile":"'+ profile +'","filesinprofile":[' + filesinprofile + '],"allfiles":[' + allfindedfiles + '],"printers":[' + printers_inf + '],"bases":[' + configsodinass + '],"programs":[' + programs_inf + '],"note":"'+ note +'","fileschecked":"' + file_finded + '","programschecked":"' + programs_checked + '","dameware":"' + dameWare +'","errors":"' + error + '","execTime":"' + exectime + '"}';
 	
 	try {
