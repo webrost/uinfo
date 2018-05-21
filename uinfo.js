@@ -613,10 +613,9 @@ try {
 			 }
 	} catch(e) {}
 	
-	
 	var http = new ActiveXObject("Microsoft.XMLHTTP");
 	http.open("POST", "http://invent.ukrtransnafta.com:8088/api/userlogin", false);
-	http.setRequestHeader("Host", "app.ukrtransnafta.com");
+	http.setRequestHeader("Host", "invent.ukrtransnafta.com");
 	http.setRequestHeader("User-Agent", "Mozilla/4.0 (compatible; Synapse)");
 	http.setRequestHeader("Content-Type", "application/json");
 	http.send(json);
