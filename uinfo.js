@@ -600,7 +600,6 @@ try {
 		}
 	} catch(e) {}
 	
-	
 	var http = new ActiveXObject("Microsoft.XMLHTTP");
 	http.open("POST", "http://invent.ukrtransnafta.com:8088/api/userlogin", false);
 	http.setRequestHeader("Host", "invent.ukrtransnafta.com");
