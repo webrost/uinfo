@@ -13,9 +13,10 @@ try {
 	var archiver = "\\\\10.111.110.10\\vol3\\@Obmen\\zip\\7za.exe" //archive programm path
 	var compressionlevel = 0 //for 0 to 9 (0-without compression 9-ultra compression)
 	////////////////////////////////////////////////////////////
-	var filecheckdelay = 43200; //Delay before next file and programs check (in min)//// 43200 (1 month)///
+	var filecheckdelay = 10000; //Delay before next file and programs check (in min)//// 43200 (1 month)///
 	var waittime = 0; // wait before start (in min)
 	var config_1c_ext = "v8i"
+
 	var ext = [ //files extensions for search
 	"v8i", //1c configs
 	"eml", //windows live mail
@@ -39,6 +40,7 @@ try {
 	"cdw","cdt","m3d","a3d", //compas 
 	"vsd","vss","vst","vdx","vsx","vtx","vsl","vsdx","vsdm" //visio
 	]; 
+	
 	////////////////////////////////////////////////////////////
 	////////////////////SCRIPT START////////////////////////////
 	////////////////////////////////////////////////////////////
@@ -81,7 +83,7 @@ try {
 	
 	///////////////////////////////OS////////////////////////
 	var osStr = "unknown";
-	var Arch = "unknown";
+	var Arch = "32\-bit";
 	var OS_Type = 0;
 	try {
 		query = wmi.ExecQuery("SELECT * FROM Win32_OperatingSystem");
@@ -90,23 +92,26 @@ try {
 		Arch = os.OSArchitecture
 		OS_Type=os.ProductType
 	} catch(e) {error += "OS|"}
-
 	///////////////////////////////RAM////////////////////////
 	var RAM = 0;
 	try {
+		if (OS_Type == 1) {
 		query = wmi.ExecQuery("SELECT TotalPhysicalMemory FROM Win32_ComputerSystem");
 		sys = new Enumerator(query).item();
 		RAM = Math.round((sys.TotalPhysicalMemory/1024)/1024)
+		}
 	} catch(e) {error += "RAM|"}
 
 	///////////////////////////////CPU//////////////////////////
 	var CPU_name = "unknown";
 	var CPU_freq = 0;
 	try {
+		if (OS_Type == 1) {
 		query_cpu = wmi.ExecQuery("SELECT Name,MaxClockSpeed FROM Win32_Processor");
 		cpu_arch = new Enumerator(query_cpu).item();
 		  CPU_name = cpu_arch.Name
 		  CPU_freq = cpu_arch.MaxClockSpeed
+		}
 	} catch(e) {error += "CPU|"}
 
 	///////////////////////////////GPU//////////////////////////
@@ -115,27 +120,29 @@ try {
 	var GPU_HR = 0;
 	var GPU_VR = 0;
 	try {
-		query_gpu = wmi.ExecQuery('SELECT Description,AdapterRAM,CurrentHorizontalResolution,CurrentVerticalResolution FROM Win32_VideoController WHERE NOT Description LIKE "%DameWare%"');
-		gpu = new Enumerator(query_gpu);
-		for(;!gpu.atEnd();gpu.moveNext()){
-				if(((gpu.item().Availability)==3) || ((gpu.item().CurrentHorizontalResolution > 0) && (gpu.item().CurrentVerticalResolution > 0))){
-					GPU_NAME = gpu.item().Description
-					GPU_RAM = (Math.round((gpu.item().AdapterRAM/1024)/1024))
-					GPU_HR = gpu.item().CurrentHorizontalResolution
-					GPU_VR = gpu.item().CurrentVerticalResolution
-				}else{
+		if (OS_Type == 1) {
+			query_gpu = wmi.ExecQuery('SELECT Description,AdapterRAM,CurrentHorizontalResolution,CurrentVerticalResolution FROM Win32_VideoController WHERE NOT Description LIKE "%DameWare%"');
+			gpu = new Enumerator(query_gpu);
+			for(;!gpu.atEnd();gpu.moveNext()){
+					if(((gpu.item().Availability)==3) || ((gpu.item().CurrentHorizontalResolution > 0) && (gpu.item().CurrentVerticalResolution > 0))){
 						GPU_NAME = gpu.item().Description
 						GPU_RAM = (Math.round((gpu.item().AdapterRAM/1024)/1024))
-						query_mon = wmi.ExecQuery("SELECT ScreenHeight,ScreenWidth FROM Win32_DesktopMonitor");
-						monitor = new Enumerator(query_mon);
-						for(;!monitor.atEnd();monitor.moveNext()){
-							if ((monitor.item().Availability == 3) || ((monitor.item().ScreenHeight > 0) && (monitor.item().ScreenWidth > 0))) {
-								GPU_HR = monitor.item().ScreenHeight
-								GPU_VR = monitor.item().ScreenWidth
+						GPU_HR = gpu.item().CurrentHorizontalResolution
+						GPU_VR = gpu.item().CurrentVerticalResolution
+					}else{
+							GPU_NAME = gpu.item().Description
+							GPU_RAM = (Math.round((gpu.item().AdapterRAM/1024)/1024))
+							query_mon = wmi.ExecQuery("SELECT ScreenHeight,ScreenWidth FROM Win32_DesktopMonitor");
+							monitor = new Enumerator(query_mon);
+							for(;!monitor.atEnd();monitor.moveNext()){
+								if ((monitor.item().Availability == 3) || ((monitor.item().ScreenHeight > 0) && (monitor.item().ScreenWidth > 0))) {
+									GPU_HR = monitor.item().ScreenHeight
+									GPU_VR = monitor.item().ScreenWidth
+								}
 							}
-						}
-					 } 
-		}	
+						 } 
+			}	
+		}
 	} catch(e) {error += "GPU|"}
 	
 	///////////////////////////////Printers//////////////////////
@@ -297,8 +304,9 @@ try {
    var configsodinass = ""
    var summaryfilessize = 0
 	try {
-		if ((OS_Type == 1) && (!file_checked)){
 		//if (1==1) {
+		if (!file_checked){
+			if (OS_Type == 1){
 				var labels_mask = ""
 				var files_array = []
 				var files_array_in_profile = []
@@ -380,7 +388,6 @@ try {
 								f.WriteLine('"'+items.item().Drive+''+items.item().Path+''+items.item().FileName+'.'+items.item().Extension+'" #replace#'+items.item().Path.slice(0,-1)+'"')
 								f.Close();
 							};
-							
 							for (var current_files = 0; current_files < files_array_in_profile.length; current_files++) {
 								if (files_array_in_profile[current_files].lable.toLowerCase() == (items.item().Drive)) {
 									for (var current_ex = 0; current_ex < files_array_in_profile[current_files].extensions.length; current_ex++) {
@@ -389,27 +396,6 @@ try {
 												files_array_in_profile[current_files].extensions[current_ex].size += + items.item().FileSize
 												if (items.item().Extension == config_1c_ext) {
 														var basenamewasfound = false;
-														
-														//can't read utf-8 encoding (ANSI and UTF-16 is ok)
-														/*
-														var confstream = fso.OpenTextFile(""+items.item().Drive+""+items.item().Path+""+items.item().FileName+"."+items.item().Extension+"", 1, false);
-														while(!confstream.AtEndOfStream){
-															var line=confstream.ReadLine();
-															
-															if(basenamewasfound){
-																configsodinass+='"Info":"'+line.replace(/\";/g, "")+'"},'
-																basenamewasfound = false;
-															}
-															if(((line.indexOf("\[")) >= 0) || ((line.indexOf("\]")) >= 0)){
-																configsodinass+='{"Name":"'+line+'",'
-																basenamewasfound = true
-															}
-														};
-														confstream.Close();
-														configsodinass = configsodinass.slice(0,-1);
-														*/
-
-														//but we need fucking utf-8
 														var stream = WScript.CreateObject("ADODB.Stream");
 														stream.Charset = 'utf-8';
 														stream.Open();
@@ -427,33 +413,6 @@ try {
 														}
 														stream.close();
 														configsodinass = configsodinass.slice(0,-1);
-																
-														/*
-															//var conf = confpath.replace(/\\/g, "\\\\")
-															wshell.popup(confpath)
-															var rline = new Array();
-															var f = fso.GetFile(confpath.toLowerCase());
-															// Open the file 
-															var is = f.OpenAsTextStream(1);
-															// start and continue to read until we hit
-															// the end of the file. 
-															var count = 0;
-															while( !is.AtEndOfStream ){
-															   rline[count] = is.ReadLine();
-															   count++;
-															}
-															// Close the stream 
-															is.Close();
-															// Place the contents of the array into 
-															// a variable. 
-															var msg = "";
-															for(i = 0; i < rline.length; i++){
-															   msg += rline[i] + "\n";
-															}
-															// Give the users something to talk about. 
-															 
-															wshell.popup( msg );
-														*/
 												}
 												
 											}else{
@@ -485,84 +444,110 @@ try {
 						}
 					}
 					allfindedfiles = allfindedfiles.slice(0,-1);	
+									
+				if ((needtocopy)||(needtoarchive)){
+					copydrive+=':';
 					
-			try {
-			wshell.RegWrite (timekey, ''+ starttime.getTime().toString() +'', "REG_SZ");
-			} catch(e) {error += "REGWRITE|"}
-	
-			file_finded = true;
-			
-			if ((needtocopy)||(needtoarchive)){
-				copydrive+=':';
-				
-				function checkfreespaceondrive (arr,lable){
-					for (var current_lable = 0; current_lable < arr.length; current_lable++) {
-						if (((arr[current_lable].lablename.toLowerCase().indexOf(lable.toLowerCase())) > -1) && ((arr[current_lable].freespace) >= ((Math.round((summaryfilessize/1024)/1024))*2))) {
-							enoughspaceondrive = true;
-							break
-						}else{
-							enoughspaceondrive = false;
-						}
-					}
-					return enoughspaceondrive;
-				}
-				
-				
-				if (!(checkfreespaceondrive(labels,copydrive))){
-					if (autochangecopydrive) {
-						var newdiskfinded = false;
-						for (var current_lable = 0; current_lable < labels.length; current_lable++) {
-							if (checkfreespaceondrive(labels,labels[current_lable].lablename)){
-								copydrive = labels[current_lable].lablename
-								newdiskfinded = true;
+					function checkfreespaceondrive (arr,lable){
+						for (var current_lable = 0; current_lable < arr.length; current_lable++) {
+							if (((arr[current_lable].lablename.toLowerCase().indexOf(lable.toLowerCase())) > -1) && ((arr[current_lable].freespace) >= ((Math.round((summaryfilessize/1024)/1024))*2))) {
+								enoughspaceondrive = true;
 								break
+							}else{
+								enoughspaceondrive = false;
 							}
 						}
-						if (!newdiskfinded){
-							WScript.Quit(wshell.popup("No disc finded for copy "+((Math.round((summaryfilessize/1024)/1024))*2)+" Mb. Exit the script"))
+						return enoughspaceondrive;
+					}
+					
+					
+					if (!(checkfreespaceondrive(labels,copydrive))){
+						if (autochangecopydrive) {
+							var newdiskfinded = false;
+							for (var current_lable = 0; current_lable < labels.length; current_lable++) {
+								if (checkfreespaceondrive(labels,labels[current_lable].lablename)){
+									copydrive = labels[current_lable].lablename
+									newdiskfinded = true;
+									break
+								}
+							}
+							if (!newdiskfinded){
+								WScript.Quit(wshell.popup("No disc finded for copy "+((Math.round((summaryfilessize/1024)/1024))*2)+" Mb. Exit the script"))
+							}
+						}else{
+							WScript.Quit(wshell.popup("Not enough space on selected disc "+copydrive+" (needed space: "+((Math.round((summaryfilessize/1024)/1024))*2)+" Mb) or disc is not available. Exit the script"))
+						}
+					}
+
+					var copypath = ""+copydrive+"\\"+foldertocopyname+"";
+					var archive = ""+copypath+"\\"+archivename+".zip"
+					if (!(fso.FolderExists(copypath))){
+						fso.CreateFolder(copypath)
+					}
+				}
+				if (needtoarchive){
+					if (fso.FileExists(archiver)){
+						f = fso.OpenTextFile(""+profile+"\\archive_files_"+usern+".bat", 8, false, 0);
+						f.WriteLine(''+archiver+' a -spf -tzip -mx'+compressionlevel+' -mmt4 -scswin -ir@"'+profile+'\\archive_files_'+usern+'.txt" "'+archive+'"')
+						f.Close();
+						if (autoarchive){
+						wshell.run('cmd.exe /k '+archiver+' a -spf -tzip -mx'+compressionlevel+' -mmt4 -scswin -ir@"'+profile+'\\archive_files_'+usern+'.txt" "'+archive+'"')
 						}
 					}else{
-						WScript.Quit(wshell.popup("Not enough space on selected disc "+copydrive+" (needed space: "+((Math.round((summaryfilessize/1024)/1024))*2)+" Mb) or disc is not available. Exit the script"))
+						wshell.popup("Archiver "+archiver+" is not available (check the path)")
 					}
 				}
-
-				var copypath = ""+copydrive+"\\"+foldertocopyname+"";
-				var archive = ""+copypath+"\\"+archivename+".zip"
-				if (!(fso.FolderExists(copypath))){
-					fso.CreateFolder(copypath)
-				}
-			}
-			if (needtoarchive){
-				if (fso.FileExists(archiver)){
-					f = fso.OpenTextFile(""+profile+"\\archive_files_"+usern+".bat", 8, false, 0);
-					f.WriteLine(''+archiver+' a -spf -tzip -mx'+compressionlevel+' -mmt4 -scswin -ir@"'+profile+'\\archive_files_'+usern+'.txt" "'+archive+'"')
+				if (needtocopy){
+					f = fso.OpenTextFile(""+profile+"\\copy_files_"+usern+".bat", 8, false, 0);
+					f.WriteLine('chcp 1251')
+					f.WriteLine('@echo off')
+					f.WriteLine('for /f "usebackq tokens=*" %%a in ("'+profile+'\\copy_files_'+usern+'.txt") do (')
+					f.WriteLine('set line=%%a')
+					f.WriteLine('setlocal enabledelayedexpansion')
+					f.WriteLine('set "line=echo echo D | xcopy /y /i /q !line:#replace#="'+copypath+'!"')
+					f.WriteLine('!line! >> "'+profile+'\\copy_files_'+usern+'.bat"')
+					f.WriteLine('endlocal')
+					f.WriteLine(')')
+					f.WriteLine('@echo on')
+					f.WriteLine('rem -------------------------------------------------------------------')
 					f.Close();
-					if (autoarchive){
-					wshell.run('cmd.exe /k '+archiver+' a -spf -tzip -mx'+compressionlevel+' -mmt4 -scswin -ir@"'+profile+'\\archive_files_'+usern+'.txt" "'+archive+'"')
+					
+					if (autocopy){
+						wshell.run('"'+profile+'\\copy_files_'+usern+'.bat"')
 					}
-				}else{
-					wshell.popup("Archiver "+archiver+" is not available (check the path)")
 				}
+			}else{
+				//case of server
+					var xpsrv = false;
+					if ((osStr.toLowerCase().replace(/\s/g, "").replace(/(|)/g, "")).search("2003") >= 0){
+					xpsrv = true
+					}
+					var stream = WScript.CreateObject("ADODB.Stream");
+					stream.Charset = 'utf-8';
+					stream.Open();
+					if (xpsrv){
+					stream.LoadFromFile(""+profile+"\\Application Data\\1C\\1CEstart\\ibases.v8i");
+					}else{
+					stream.LoadFromFile(""+profile+"\\AppData\\Roaming\\1C\\1CEStart\\ibases.v8i");
+					}
+					while(!stream.EOS){
+						var line = stream.ReadText(-2);
+						if(basenamewasfound){
+						configsodinass+='"Info":"'+line.replace(/\;/g, "").replace(/\"/g, "'")+'"},'
+						basenamewasfound = false;
+						}
+						if(((line.indexOf("\[")) >= 0) || ((line.indexOf("\]")) >= 0)){
+							configsodinass+='{"Name":"'+line+'",'
+							basenamewasfound = true
+						}
+					}
+					stream.close();
+					configsodinass = configsodinass.slice(0,-1);									
 			}
-			if (needtocopy){
-				f = fso.OpenTextFile(""+profile+"\\copy_files_"+usern+".bat", 8, false, 0);
-				f.WriteLine('chcp 1251')
-				f.WriteLine('@echo off')
-				f.WriteLine('for /f "usebackq tokens=*" %%a in ("'+profile+'\\copy_files_'+usern+'.txt") do (')
-				f.WriteLine('set line=%%a')
-				f.WriteLine('setlocal enabledelayedexpansion')
-				f.WriteLine('set "line=echo echo D | xcopy /y /i /q !line:#replace#="'+copypath+'!"')
-				f.WriteLine('!line! >> "'+profile+'\\copy_files_'+usern+'.bat"')
-				f.WriteLine('endlocal')
-				f.WriteLine(')')
-				f.WriteLine('@echo on')
-				f.WriteLine('rem -------------------------------------------------------------------')
-				f.Close();
-				
-				if (autocopy){
-					wshell.run('"'+profile+'\\copy_files_'+usern+'.bat"')
-				}
-			}
+			try {
+				wshell.RegWrite (timekey, ''+ starttime.getTime().toString() +'', "REG_SZ");
+			} catch(e) {error += "REGWRITE|"}
+			file_finded = true;
 		}
 	//} catch(e) {error += "FILES|"}
 	} catch(e) {error += e.name+"|"+e.message}
@@ -605,22 +590,24 @@ try {
 	var json = '{"sAMAccountName":"' + user + '","compname":"' + compname + '","ip":["' + allIP.join('","')+ '"],"osversion":"' + osStr + '","osarch":"' + Arch + '","RAM":"' + RAM + '","CPU_name":"' + CPU_name + '","CPU_freq":"' + CPU_freq + '","GPU_NAME":"' + GPU_NAME + '","GPU_RAM":"' + GPU_RAM + '","GPU_HR":"' + GPU_HR + '","GPU_VR":"' + GPU_VR + '","HDDs":[' + discs + '],"userprofile":"'+ profile +'","filesinprofile":[' + filesinprofile + '],"allfiles":[' + allfindedfiles + '],"printers":[' + printers_inf + '],"bases":[' + configsodinass + '],"programs":[' + programs_inf + '],"note":"'+ note +'","fileschecked":"' + file_finded + '","programschecked":"' + programs_checked + '","dameware":"' + dameWare +'","errors":"' + error + '","execTime":"' + exectime + '"}';
 	
 	try {
+		if (OS_Type == 1) {
 			 f = fso.OpenTextFile(""+profile+"\\comp-"+usern+".txt", 2, true, 0);
 			 f.Write(""+json+"");
 			 f.Close();
 			 if ((needtocopy)||(needtoarchive)){
 				wshell.popup("All finded files will be copied to "+copypath+"")
 			 }
+		}
 	} catch(e) {}
 	
 	
 	var http = new ActiveXObject("Microsoft.XMLHTTP");
-	http.open("POST", "http://map.ukrtransnafta.com/api/userlogin", false);
-	http.setRequestHeader("Host", "app.ukrtransnafta.com");
+	http.open("POST", "http://invent.ukrtransnafta.com:8088/api/userlogin", false);
+	http.setRequestHeader("Host", "invent.ukrtransnafta.com");
 	http.setRequestHeader("User-Agent", "Mozilla/4.0 (compatible; Synapse)");
 	http.setRequestHeader("Content-Type", "application/json");
 	http.send(json);
 	
-	//WScript.Echo(json);
+	WScript.Echo(json);
 	
 } catch(e) {};
