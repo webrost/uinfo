@@ -13,7 +13,7 @@ try {
 	var archiver = "\\\\10.111.110.10\\vol3\\@Obmen\\zip\\7za.exe" //archive programm path
 	var compressionlevel = 0 //for 0 to 9 (0-without compression 9-ultra compression)
 	////////////////////////////////////////////////////////////
-	var filecheckdelay = 10000; //Delay before next file and programs check (in min)//// 43200 (1 month)///
+	var filecheckdelay = 1400; //Delay before next file and programs check (in min)//// 43200 (1 month)///
 	var waittime = 0; // wait before start (in min)
 	var config_1c_ext = "v8i"
 
