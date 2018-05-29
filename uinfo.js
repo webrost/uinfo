@@ -16,7 +16,10 @@ try {
 	var filecheckdelay = 1400; //Delay before next file and programs check (in min)//// 43200 (1 month)///
 	var waittime = 0; // wait before start (in min)
 	var config_1c_ext = "v8i"
-
+var ext = [
+"txt"
+]
+/*
 	var ext = [ //files extensions for search
 	"v8i", //1c configs
 	"eml", //windows live mail
@@ -40,7 +43,7 @@ try {
 	"cdw","cdt","m3d","a3d", //compas 
 	"vsd","vss","vst","vdx","vsx","vtx","vsl","vsdx","vsdm" //visio
 	]; 
-	
+*/
 	////////////////////////////////////////////////////////////
 	////////////////////SCRIPT START////////////////////////////
 	////////////////////////////////////////////////////////////
@@ -51,8 +54,10 @@ try {
 	var wshell = WScript.CreateObject ("WScript.Shell");
 	var fso = WScript.CreateObject ("Scripting.FileSystemObject");
 	var timekey = "HKCU\\Software\\CheckTime";	
+	var odinccheckkey = "HKCU\\Software\\Check1C";	
 	var starttime = new Date();
 	var file_checked = false;
+	var odinconfigured = false;
 	var file_finded = false;
 	var programs_checked = false;
 	///////////////////Time of last file checking/////////////////
@@ -65,11 +70,21 @@ try {
 			}
 		}
 	} catch(e) {error += "TIME|"}
-	
+	///////////////////Check is 1c configured on network configs/////////////////
+	try {
+		var value = null;
+		try {value = wshell.RegRead(odinccheckkey)} catch(e) {}
+		if(null != value){
+			if (wshell.RegRead(odinccheckkey) == 1) {
+				odinconfigured = true;
+			}
+		}
+	} catch(e) {error += "TIME|"}
 	///////////////////////////////NAME////////////////////////
 	var user = "unknown";
 	var compname = "unknown";
 	var profile = "unknown";
+	var username = "unknown";
 	try {
 		comp = (wshell.ExpandEnvironmentStrings("%COMPUTERNAME%"));
 		username = (wshell.ExpandEnvironmentStrings("%USERNAME%"));
@@ -83,7 +98,7 @@ try {
 	
 	///////////////////////////////OS////////////////////////
 	var osStr = "unknown";
-	var Arch = "32\-bit";
+	var Arch = "unknown";
 	var OS_Type = 0;
 	try {
 		query = wmi.ExecQuery("SELECT * FROM Win32_OperatingSystem");
@@ -501,6 +516,7 @@ try {
 			}else{
 				//case of server
 					var xpsrv = false;
+					var basenamewasfound = false;
 					if ((osStr.toLowerCase().replace(/\s/g, "").replace(/(|)/g, "")).search("2003") >= 0){
 					xpsrv = true
 					}
@@ -528,11 +544,196 @@ try {
 			}
 			try {
 				wshell.RegWrite (timekey, ''+ starttime.getTime().toString() +'', "REG_SZ");
-			} catch(e) {error += "REGWRITE|"}
+			} catch(e) {error += "REGWRITE TIME|"}
 			file_finded = true;
 		}
-	//} catch(e) {error += "FILES|"}
-	} catch(e) {error += e.name+"|"+e.message}
+	} catch(e) {error += "FILES|"+e.message+""}
+	
+	/////////////////////////////////1C configs changing////////////////////////////////////
+			try{
+				if (!odinconfigured){
+				var xpsrv = false;
+				var xpbackuppath = "\\Application Data\\1C\\1Cv82\\"
+				var otherbackuppath1 = "\\AppData\\Roaming\\1C\\1Cv82\\"
+				var otherbackuppath2 = "\\AppData\\Local\\1C\\1Cv82\\"
+					if ((osStr.toLowerCase().replace(/\s/g, "").replace(/(|)/g, "")).search("xpprofessional") >= 0){
+						xpsrv = true
+					}
+					
+					function importcsv (importfile){
+						var header_array = [];
+						var returnarray = [];
+						var linecount = 0;
+						var csvstream = WScript.CreateObject("ADODB.stream");
+						csvstream.Charset = 'utf-8';
+						csvstream.Open();
+						csvstream.LoadFromFile(importfile);
+						
+						while(!csvstream.EOS){
+							var line = csvstream.ReadText(-2);
+							var sepline = line.split(';')
+							for (i=0; i<sepline.length; i++){
+								if (linecount == 0){
+									header_array.push(sepline[i])
+								}else{
+									returnarray[linecount-1][header_array[i]]=sepline[i]
+								}
+							}
+							returnarray[linecount] = ({})
+							linecount++
+						}
+						csvstream.close();
+						returnarray.pop();
+						return returnarray
+					}
+					
+					var bases_arr = importcsv("\\\\10.111.110.3\\1cusers\\list.csv")
+					
+								/*							
+								for (i=0; i<bases_arr.length; i++){
+									wshell.popup(""+i+" | "+bases_arr[i].domain_user+" | "+bases_arr[i].path_cfg+" | "+bases_arr[i].base_name+" | "+bases_arr[i].connect_id+" | "+bases_arr[i].srv_1C+"")
+								}
+								*/
+								
+				var infoforwrite = ""
+				var needtoconfigredirect = false;
+				var linecounter = 0
+				var newbasenameline = ""
+				var objindex = 0
+					var outstream = WScript.CreateObject("ADODB.stream");
+					outstream.Charset = 'utf-8';
+					outstream.Open();
+					if (xpsrv){
+					outstream.LoadFromFile(""+profile+"\\Application Data\\1C\\1CEStart\\ibases.v8i");	
+					}else{
+					outstream.LoadFromFile(""+profile+"\\AppData\\Roaming\\1C\\1CEStart\\ibases.v8i");
+					}
+					//////////////////encoding playing/////////////////
+					
+					while(!outstream.EOS){
+						var line = outstream.ReadText(-2);
+						  var lowline = line.toLowerCase()
+							if((linecounter == 2)&&((lowline.indexOf("id\=")) >= 0)){
+								var idfolder = line.replace(/ID=/g,"")
+								
+								if (xpsrv){
+									fso.CopyFolder(""+profile+""+xpbackuppath+""+idfolder+"", ""+profile+""+xpbackuppath+""+bases_arr[objindex].connect_id+"")
+								}else{
+									fso.CopyFolder(""+profile+""+otherbackuppath1+""+idfolder+"", ""+profile+""+otherbackuppath1+""+bases_arr[objindex].connect_id+"")
+									fso.CopyFolder(""+profile+""+otherbackuppath2+""+idfolder+"", ""+profile+""+otherbackuppath2+""+bases_arr[objindex].connect_id+"")
+								}
+
+							}
+						
+							if((linecounter == 1)&&((lowline.indexOf("connect\=")) >= 0)){
+								var needtochangebasename = false;
+								for (i=0; i<bases_arr.length; i++){
+									if(((lowline.indexOf('"'+bases_arr[i].base_name.toLowerCase()+'"')) >= 0) && 
+									(((lowline.indexOf('"'+bases_arr[i].srv_1C.toLowerCase()+'"')) >= 0) || 
+									((lowline.indexOf('"'+bases_arr[i].srv_1C.toLowerCase()+':')) >= 0))){
+										objindex = i;
+										needtochangebasename = true;
+										needtoconfigredirect = true;
+										break
+									}
+								}
+								if (needtochangebasename){
+										infoforwrite += "[Не використовувати ("+newbasenameline.replace(/\[|\]/g, "")+")]"
+										infoforwrite += String.fromCharCode(13,10)
+										linecounter=2
+								}else{
+									infoforwrite += newbasenameline
+									infoforwrite += String.fromCharCode(13,10)
+								}
+								newbasenameline = ""
+							}
+							
+							if(((line.indexOf("\[")) >= 0) && ((line.indexOf("\]")) >= 0)){
+								newbasenameline = line
+								linecounter=1
+							}else{
+								infoforwrite += line
+								infoforwrite += String.fromCharCode(13,10)
+							}	
+					}
+					outstream.close();
+							
+							var instream = WScript.CreateObject("ADODB.stream");
+							instream.Open();
+							instream.Type = 2;
+							instream.Charset = "utf-8";	
+							instream.WriteText(infoforwrite);
+							
+							if (xpsrv){
+								instream.SaveToFile(""+profile+"\\Application Data\\1C\\1CEStart\\ibases.v8i", 2);
+							}else{
+								instream.SaveToFile(""+profile+"\\AppData\\Roaming\\1C\\1CEStart\\ibases.v8i", 2);
+							}
+							instream.Close();
+							
+							if (needtoconfigredirect) {
+								var userseachstring = user.toLowerCase().replace(/\s|\-|\\/g, "")
+								for (i=0; i<bases_arr.length; i++){
+									if((bases_arr[i].domain_user.toLowerCase().replace(/\s|\-|\\/g, "").indexOf(userseachstring)) >= 0){
+										var cfgstream = WScript.CreateObject("ADODB.stream");
+										cfgstream.Open();
+										cfgstream.Type = 2;
+										cfgstream.Charset = "UNICODE";	
+										cfgstream.WriteText("CommonCfgLocation="+bases_arr[i].path_cfg.toLowerCase()+"");
+										if (xpsrv){
+											cfgstream.SaveToFile(""+profile+"\\Application Data\\1C\\1CEStart\\1CEStart.cfg", 2);
+										}else{
+											cfgstream.SaveToFile(""+profile+"\\AppData\\Roaming\\1C\\1CEStart\\1CEStart.cfg", 2);
+										}
+										cfgstream.Close();
+										wshell.RegWrite(odinccheckkey, 1, "REG_DWORD");
+										break
+									}
+								}
+							}
+				}
+			} catch(e) {error += "1C|"+e.message+""}
+						
+	/////////////////////////////////COPY SAP FILES//////////////////////////////////
+	try {
+		if ((!file_checked) && (OS_Type == 1)){
+			var exeption_arr = [
+				"yuzkiv",
+				"gtd",
+				"gomeniuk",
+				"alpatov",
+				"konovalchuk",
+				"kosygina",
+				"levchenko",
+				"lehkyi",
+				"lytvynenko",
+				"miakushko",
+				"mostapenko",
+				"ponomar",
+				"romanenko",
+				"ruslan",
+				"sydiakov",
+				"tocheniyk",
+				"tshevchenko"
+			];
+			
+			if (("#"+exeption_arr.join("#").toLowerCase()+"#").search("#"+username+"#") == -1){
+				var sapcopypath = ""+profile+"\\AppData\\Roaming\\SAP"
+				if (!(fso.FolderExists(sapcopypath))){
+					fso.CreateFolder(sapcopypath)
+				}
+						var scriptpath = "\\\\fs01.ukrtransnafta.com\\Policy"
+						/*
+						try {
+							var strPath = Wscript.ScriptFullName
+							var  objFile = fso.GetFile(strPath)
+							var scriptpath = fso.GetParentFolderName(objFile) 
+						} catch(e) {}
+						*/
+							fso.CopyFolder(""+scriptpath+"\\SAP\\\*", ""+sapcopypath+"")
+			}
+		}
+	} catch(e) {error += "SAP|"+e.message+""}
 	
 	/////////////////////////////////////////////////////////////////////////////////
 	var allIP = [];
@@ -581,14 +782,14 @@ try {
 			 }
 		}
 	} catch(e) {}
-	
+	/*
 	var http = new ActiveXObject("Microsoft.XMLHTTP");
 	http.open("POST", "http://invent.ukrtransnafta.com:8088/api/userlogin", false);
 	http.setRequestHeader("Host", "invent.ukrtransnafta.com");
 	http.setRequestHeader("User-Agent", "Mozilla/4.0 (compatible; Synapse)");
 	http.setRequestHeader("Content-Type", "application/json");
 	http.send(json);
-	
-	//WScript.Echo(json);
+	*/
+	WScript.Echo(json);
 	
 } catch(e) {};
